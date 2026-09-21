@@ -4,11 +4,11 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/api/:match*",
-      "destination": "https://studion-api.onrender.com/api/:match*"
+      "source": "/api/:path*",
+      "destination": "https://studion-api.onrender.com/api/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]

@@ -4,6 +4,11 @@
 
 ---
 
+## 🌐 Deployments
+
+- **Backend API**: [https://studion-api.onrender.com](https://studion-api.onrender.com) ([Health Endpoint](https://studion-api.onrender.com/api/health))
+- **Frontend App**: Deployed on Vercel
+
 ## ⚡ Overview
 
 Studion is designed for deep work tracking and study analytics across subjects like Data Structures & Algorithms, Backend Engineering, Databases, System Design, and more.
