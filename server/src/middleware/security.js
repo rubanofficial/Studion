@@ -38,7 +38,15 @@ export const corsMiddleware = cors({
   origin(origin, callback) {
     // Same-origin requests and non-browser clients (curl, tests) send no Origin.
     if (!origin) return callback(null, true);
-    if (env.corsOrigins.includes(origin) || env.corsOrigins.includes('*')) return callback(null, true);
+    const isAllowed = env.corsOrigins.some((allowed) => {
+      if (allowed === '*' || allowed === origin) return true;
+      if (allowed.startsWith('*.') || allowed.startsWith('https://*.')) {
+        const domain = allowed.replace(/^https?:\/\/\*\./, '');
+        return origin.endsWith(`.${domain}`) || origin === `https://${domain}`;
+      }
+      return false;
+    });
+    if (isAllowed) return callback(null, true);
     return callback(ApiError.forbidden(`Origin ${origin} is not allowed to make authenticated requests.`));
   },
   credentials: true,

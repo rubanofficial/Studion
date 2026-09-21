@@ -17,6 +17,7 @@
     "dev:server": "npm --workspace server run dev",
     "dev:web": "npm --workspace web run dev",
     "build": "npm --workspace web run build",
+    "start": "npm --workspace server run start",
     "seed": "npm --workspace server run seed",
     "test": "npm --workspace shared run test && npm --workspace server run test && npm --workspace web run test",
     "test:shared": "npm --workspace shared run test",
