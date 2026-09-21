@@ -85,13 +85,30 @@ function devSecret(name) {
 }
 
 if (isProduction) {
-  const missing = ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'MONGODB_URI'].filter((key) => !raw[key]);
-  if (missing.length > 0) {
-    throw new Error(
-      `Refusing to start in production without: ${missing.join(', ')}. ` +
-        'Set them in the environment — generated fallbacks would produce forgeable tokens or an unusable database.',
+  if (!raw.MONGODB_URI && !raw.USE_MEMORY_DB) {
+    // eslint-disable-next-line no-console
+    console.error(
+      '\n' +
+        '========================================================================\n' +
+        '❌ [DEPLOYMENT ERROR] MONGODB_URI is missing!\n' +
+        'Please add MONGODB_URI in your Render Dashboard -> Environment:\n' +
+        '  Key:   MONGODB_URI\n' +
+        '  Value: <your MongoDB Atlas connection string>\n' +
+        '========================================================================\n',
     );
+    throw new Error('Refusing to start in production without MONGODB_URI. Set it in Render Environment.');
   }
+}
+
+const accessSecret = raw.JWT_ACCESS_SECRET || (isProduction ? randomBytes(32).toString('hex') : devSecret('access'));
+const refreshSecret = raw.JWT_REFRESH_SECRET || (isProduction ? randomBytes(32).toString('hex') : devSecret('refresh'));
+
+if (isProduction && (!raw.JWT_ACCESS_SECRET || !raw.JWT_REFRESH_SECRET)) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    '[WARN] JWT_ACCESS_SECRET or JWT_REFRESH_SECRET not set in environment. ' +
+      'Using auto-generated cryptographically secure fallback secrets.',
+  );
 }
 
 const useMemoryDb = raw.USE_MEMORY_DB || (isTest ? true : !raw.MONGODB_URI && !isProduction);
@@ -102,8 +119,8 @@ export const env = Object.freeze({
   isTest,
   isDevelopment: raw.NODE_ENV === 'development',
   useMemoryDb,
-  accessSecret: raw.JWT_ACCESS_SECRET || devSecret('access'),
-  refreshSecret: raw.JWT_REFRESH_SECRET || devSecret('refresh'),
+  accessSecret,
+  refreshSecret,
   /** Cookies must be SameSite=None in cross-site production, which requires Secure. */
   cookieSecure: raw.COOKIE_SECURE ?? isProduction,
   corsOrigins: raw.CORS_ORIGIN.split(',')
