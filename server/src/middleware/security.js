@@ -38,6 +38,17 @@ export const corsMiddleware = cors({
   origin(origin, callback) {
     // Same-origin requests and non-browser clients (curl, tests) send no Origin.
     if (!origin) return callback(null, true);
+
+    // Allow all Vercel deployments (*.vercel.app) automatically
+    if (/^https:\/\/([a-zA-Z0-9_-]+\.)*vercel\.app$/.test(origin)) {
+      return callback(null, true);
+    }
+
+    // Allow local development and preview ports
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      return callback(null, true);
+    }
+
     const isAllowed = env.corsOrigins.some((allowed) => {
       if (allowed === '*' || allowed === origin) return true;
       if (allowed.startsWith('*.') || allowed.startsWith('https://*.')) {

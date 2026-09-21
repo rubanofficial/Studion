@@ -48,7 +48,7 @@ const schema = z.object({
   ACCESS_TOKEN_TTL: z.string().default('15m'),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
 
-  CORS_ORIGIN: z.string().default('http://localhost:5173,http://localhost:4173'),
+  CORS_ORIGIN: z.string().default('http://localhost:5173,http://localhost:4173,https://studion-nine.vercel.app,https://*.vercel.app'),
   COOKIE_SECURE: booleanish.optional(),
   COOKIE_DOMAIN: z.string().optional(),
   TRUST_PROXY: booleanish.default(false),
