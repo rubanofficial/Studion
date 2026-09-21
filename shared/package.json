@@ -1,0 +1,19 @@
+{
+  "name": "@focusforge/core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Framework-free domain logic for FocusForge: timestamp math, focus scoring, aggregation, streaks, timezone bucketing.",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./*": "./src/*.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8"
+  }
+}

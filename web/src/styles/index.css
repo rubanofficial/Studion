@@ -1,0 +1,353 @@
+/**
+ * FocusForge design system.
+ *
+ * Order matters and is deliberate: tokens are declared first so every later rule
+ * (and every Tailwind utility that reads these variables) resolves against a
+ * defined value. There is exactly one place where a colour, radius or motion
+ * duration is defined.
+ *
+ * The visual language in one paragraph: near-black canvas, one accent that
+ * follows the active subject, a two-family type system where monospace is
+ * reserved for *instrumentation* (the timer, metrics, timestamps, key hints),
+ * hairline borders instead of drop shadows for structure, and motion that only
+ * ever communicates state — starting, pausing, completing, earning.
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================================
+   TOKENS
+   ========================================================================== */
+
+@layer base {
+  :root {
+    /* Surfaces, deepest outward. A near-black with a faint blue cast reads as
+       "instrument" rather than "unlit room". */
+    --void: 8 9 12;
+    --surface: 13 15 20;
+    --raised: 20 23 30;
+    --sunken: 5 6 10;
+
+    --ink: 238 241 246;
+    --muted: 152 161 178;
+    --faint: 98 107 125;
+    --ghost: 58 65 82;
+
+    --line: 28 32 41;
+    --edge: 38 43 54;
+
+    /* The accent is overwritten at runtime with the active subject's colour, so
+       the instrument is literally painted by what you are working on. */
+    --accent: 94 234 212;
+    --accent-ink: 8 9 12;
+
+    --state-focus: 94 234 212;
+    --state-rest: 125 211 252;
+    --state-pause: 251 191 36;
+    --state-alert: 251 113 133;
+    --state-good: 74 222 128;
+
+    /* Motion. One signature curve, four durations, nothing ad hoc. */
+    --ease-forge: cubic-bezier(0.22, 1, 0.36, 1);
+    --dur-instant: 90ms;
+    --dur-quick: 160ms;
+    --dur-calm: 320ms;
+    --dur-slow: 640ms;
+
+    /* Ambient wash behind the instrument, driven by timer state. */
+    --ambient-a: 94 234 212;
+    --ambient-b: 99 102 241;
+    --ambient-strength: 0.1;
+
+    color-scheme: dark;
+  }
+
+  /**
+   * Light mode is a first-class theme, not an inversion. Surfaces stay layered,
+   * borders stay hairline, and the accent darkens so text placed on it remains
+   * readable — inverting the dark palette would produce a washed-out grey app.
+   */
+  [data-theme='light'] {
+    --void: 246 247 249;
+    --surface: 255 255 255;
+    --raised: 255 255 255;
+    --sunken: 237 239 243;
+
+    --ink: 16 19 26;
+    --muted: 84 92 107;
+    --faint: 124 132 148;
+    --ghost: 179 186 198;
+
+    --line: 228 231 236;
+    --edge: 209 214 222;
+
+    --accent: 13 148 136;
+    --accent-ink: 255 255 255;
+
+    --state-focus: 13 148 136;
+    --state-rest: 2 132 199;
+    --state-pause: 180 83 9;
+    --state-alert: 190 24 93;
+    --state-good: 21 128 61;
+
+    --ambient-strength: 0.16;
+    color-scheme: light;
+  }
+
+  * {
+    border-color: rgb(var(--line));
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-void text-ink font-sans text-base antialiased;
+    /* Room-scale typography: slightly tighter than default so dense metric
+       rows stay legible without shrinking the type. */
+    letter-spacing: -0.006em;
+    overscroll-behavior: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Visible, consistent focus for keyboard users only. Every interactive element
+     in the app inherits this, which is why almost nothing needs a focus class. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background: rgb(var(--accent) / 0.28);
+  }
+
+  /* Tabular figures everywhere monospace is used, so metrics do not reflow as
+     digits change. */
+  .font-mono {
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings: 'tnum' 1, 'zero' 1;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--edge));
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--faint));
+    background-clip: content-box;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* Respect the system preference and the in-app override. The in-app setting
+     exists because reduced motion is also a *preference about the product*, not
+     only an accessibility need. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  [data-motion='reduced'] *,
+  [data-motion='reduced'] *::before,
+  [data-motion='reduced'] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================================
+   PRIMITIVES
+   ========================================================================== */
+
+@layer components {
+  /* A hairline-bordered pane. Used instead of cards with heavy shadows: on a
+     near-black canvas, structure comes from edges, not from elevation. */
+  .pane {
+    @apply rounded-lg border border-line bg-surface;
+  }
+
+  .pane-raised {
+    @apply rounded-lg border border-edge bg-raised shadow-lift;
+  }
+
+  /* Small uppercase label used for field names and metric captions. */
+  .label {
+    @apply font-mono text-micro uppercase text-faint;
+  }
+
+  .metric {
+    @apply font-mono text-lead text-ink;
+  }
+
+  .hint {
+    @apply text-small text-faint;
+  }
+
+  /* Keyboard hint chip, e.g. the `⌘K` shown in the command palette. */
+  .key {
+    @apply inline-flex min-w-[1.4rem] items-center justify-center rounded-sm border border-edge bg-sunken px-1.5 py-0.5 font-mono text-micro text-muted;
+  }
+
+  /* ---------------------------------------------------------------- buttons */
+
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-md border border-transparent px-3.5 py-2
+           text-small font-medium transition-all duration-quick ease-forge
+           disabled:pointer-events-none disabled:opacity-40;
+  }
+
+  .btn-primary {
+    @apply bg-accent text-accent-ink hover:brightness-110 active:brightness-95;
+  }
+
+  .btn-secondary {
+    @apply border-edge bg-raised text-ink hover:border-faint hover:bg-surface;
+  }
+
+  .btn-ghost {
+    @apply border-transparent text-muted hover:bg-raised hover:text-ink;
+  }
+
+  .btn-danger {
+    @apply border-alert/40 text-alert hover:bg-alert/10;
+  }
+
+  .btn-sm {
+    @apply px-2.5 py-1.5 text-tiny;
+  }
+
+  .btn-lg {
+    @apply px-5 py-2.5 text-base;
+  }
+
+  /* The primary timer control. Larger, pill-shaped, and the only element in the
+     app allowed to carry a glow — it is the one thing the user came to press. */
+  .btn-instrument {
+    @apply inline-flex select-none items-center justify-center gap-2.5 rounded-pill px-7 py-3.5
+           text-base font-medium transition-all duration-quick ease-forge
+           disabled:pointer-events-none disabled:opacity-40;
+  }
+
+  /* ----------------------------------------------------------------- inputs */
+
+  .field {
+    @apply w-full rounded-md border border-edge bg-sunken px-3 py-2 text-small text-ink
+           placeholder:text-ghost transition-colors duration-quick
+           focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40;
+  }
+
+  .field-invalid {
+    @apply border-alert focus:border-alert focus:ring-alert/30;
+  }
+
+  /* -------------------------------------------------------- navigation dock */
+
+  .dock-item {
+    @apply relative flex items-center gap-2 rounded-md px-3 py-2 text-small transition-colors duration-quick
+           text-muted hover:bg-raised hover:text-ink;
+  }
+
+  .dock-item-active {
+    @apply bg-raised text-ink;
+  }
+
+  /* ------------------------------------------------------------------ chips */
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-pill border border-line bg-raised px-2.5 py-1 text-tiny text-muted;
+  }
+
+  .chip-active {
+    @apply border-accent/50 bg-accent/10 text-ink;
+  }
+
+  .divider {
+    @apply h-px w-full bg-line;
+  }
+
+  /* --------------------------------------------------------------- surfaces */
+
+  /* The ambient wash. Two very soft radial gradients positioned off-canvas,
+     tinted by the active subject and shifted by timer state. It is the only
+     "decoration" in the product and it carries information. */
+  .ambient {
+    background:
+      radial-gradient(
+        120% 90% at 12% -10%,
+        rgb(var(--ambient-a) / calc(var(--ambient-strength) * 1.15)) 0%,
+        transparent 55%
+      ),
+      radial-gradient(
+        100% 80% at 92% 108%,
+        rgb(var(--ambient-b) / var(--ambient-strength)) 0%,
+        transparent 60%
+      );
+    transition: background var(--dur-slow) var(--ease-forge);
+  }
+
+  /* Faint engineering grid. 1px lines at 1.5% opacity: present when you look for
+     it, invisible when you do not. */
+  .gridlines {
+    background-image:
+      linear-gradient(to right, rgb(var(--edge) / 0.4) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(var(--edge) / 0.4) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(70% 60% at 50% 40%, black 0%, transparent 100%);
+  }
+
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--edge)) transparent;
+  }
+
+  /* Announces content to screen readers without occupying layout. */
+  .sr-only-live {
+    @apply sr-only;
+  }
+}
+
+@layer utilities {
+  /* Text that must never wrap or shift: metrics, timer digits, timestamps. */
+  .numeric-stable {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  .no-drag {
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+
+  /* A soft inner vignette so the centre of the cockpit feels lit. */
+  .vignette {
+    box-shadow: inset 0 0 180px 40px rgb(var(--sunken) / 0.9);
+  }
+}
