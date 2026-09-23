@@ -295,6 +295,19 @@ export async function requestOrThrow<T>(path: string, options: RequestOptions = 
   return result.data;
 }
 
+/** Builds a clean query string, stripping undefined, null, empty strings, and spurious 'undefined' literals. */
+function toQueryString(params?: Record<string, unknown>): string {
+  if (!params) return '';
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '' && value !== 'undefined' && value !== 'null') {
+      search.set(key, String(value));
+    }
+  }
+  const qs = search.toString();
+  return qs ? `?${qs}` : '';
+}
+
 /** Typed endpoint helpers, so paths and payload shapes live in one place. */
 export const api = {
   auth: {
@@ -321,7 +334,7 @@ export const api = {
     start: (body: Record<string, unknown>) => request<{ session: SessionDto; created: boolean; adopted: boolean; idempotent: boolean }>('/sessions', { method: 'POST', body }),
     current: () => request<{ openSession: SessionDto | null; openRecord: SessionRecordDto | null; reconciled: SessionDto | null; serverTime: string; idleGapMs: number; heartbeatIntervalMs: number }>('/sessions/current'),
     get: (id: string) => request<{ session: SessionDto; record: SessionRecordDto }>(`/sessions/${id}`),
-    list: (query: Record<string, string | number> = {}) => request<{ sessions: SessionDto[] }>(`/sessions?${new URLSearchParams(query as Record<string, string>)}`),
+    list: (query: Record<string, unknown> = {}) => request<{ sessions: SessionDto[] }>(`/sessions${toQueryString(query)}`),
     events: (id: string, events: Array<{ type: string; at: string; kind?: string | null }>) =>
       request<{ session: SessionDto; added: number; ignored: number }>(`/sessions/${id}/events`, { method: 'POST', body: { events } }),
     pause: (id: string) => request<{ session: SessionDto }>(`/sessions/${id}/pause`, { method: 'POST', body: {} }),
@@ -344,12 +357,12 @@ export const api = {
     update: (id: string, body: Record<string, unknown>) => request<{ subject: SubjectDto }>(`/subjects/${id}`, { method: 'PATCH', body }),
     archive: (id: string, archived: boolean) => request<{ subject: SubjectDto }>(`/subjects/${id}/archive`, { method: 'POST', body: { archived } }),
     remove: (id: string, query: { reassignTo?: string; confirm?: string } = {}) =>
-      request<{ deleted: boolean; movedSessions: number }>(`/subjects/${id}?${new URLSearchParams(query as Record<string, string>)}`, { method: 'DELETE' }),
+      request<{ deleted: boolean; movedSessions: number }>(`/subjects/${id}${toQueryString(query)}`, { method: 'DELETE' }),
   },
 
   tasks: {
-    list: (query: Record<string, string | number> = {}) => request<{ tasks: TaskDto[] }>(`/tasks?${new URLSearchParams(query as Record<string, string>)}`),
-    next: (subjectId?: string) => request<{ task: TaskDto | null }>(`/tasks/next${subjectId ? `?subjectId=${subjectId}` : ''}`),
+    list: (query: Record<string, unknown> = {}) => request<{ tasks: TaskDto[] }>(`/tasks${toQueryString(query)}`),
+    next: (subjectId?: string) => request<{ task: TaskDto | null }>(`/tasks/next${toQueryString({ subjectId })}`),
     create: (body: Record<string, unknown>) => request<{ task: TaskDto }>('/tasks', { method: 'POST', body }),
     update: (id: string, body: Record<string, unknown>) => request<{ task: TaskDto }>(`/tasks/${id}`, { method: 'PATCH', body }),
     remove: (id: string) => request<void>(`/tasks/${id}`, { method: 'DELETE' }),
@@ -363,15 +376,21 @@ export const api = {
   },
 
   analytics: {
-    period: (query: Record<string, string | number | boolean> = {}) =>
-      request<AnalyticsDto>(`/analytics?${new URLSearchParams(query as Record<string, string>)}`),
+    period: (query: { period?: string; anchor?: string; reference?: string; subjectId?: string; compare?: boolean } = {}) =>
+      request<AnalyticsDto>(`/analytics${toQueryString({
+        period: query.period,
+        reference: query.reference ?? query.anchor,
+        anchor: query.anchor,
+        subjectId: query.subjectId,
+        compare: query.compare,
+      })}`),
     heatmap: (days = 365, subjectId?: string) =>
-      request<HeatmapDto>(`/analytics/heatmap?days=${days}${subjectId ? `&subjectId=${subjectId}` : ''}`),
+      request<HeatmapDto>(`/analytics/heatmap${toQueryString({ days, subjectId })}`),
     calendar: (month?: string, subjectId?: string) =>
-      request<CalendarDto>(`/analytics/calendar?${new URLSearchParams({ ...(month ? { month } : {}), ...(subjectId ? { subjectId } : {}) })}`),
-    day: (day?: string) => request<DayDetailDto>(`/analytics/day?${new URLSearchParams(day ? { day } : {})}`),
-    dailyReview: (day?: string) => request<DailyReviewDto>(`/analytics/review/daily?${new URLSearchParams(day ? { day } : {})}`),
-    weeklyReview: () => request<WeeklyReviewDto>('/analytics/review/weekly'),
+      request<CalendarDto>(`/analytics/calendar${toQueryString({ month, subjectId })}`),
+    day: (day?: string) => request<DayDetailDto>(`/analytics/day${toQueryString({ day })}`),
+    dailyReview: (day?: string) => request<DailyReviewDto>(`/analytics/review/daily${toQueryString({ day })}`),
+    weeklyReview: (reference?: string) => request<WeeklyReviewDto>(`/analytics/review/weekly${toQueryString({ reference })}`),
     achievements: () => request<AchievementsDto>('/analytics/achievements'),
     markAchievementsSeen: (keys?: string[]) => request<{ marked: number }>('/analytics/achievements/seen', { method: 'POST', body: keys ? { keys } : {} }),
   },
@@ -389,7 +408,7 @@ export const api = {
   },
 
   exportUrl: (query: { format: 'json' | 'csv'; dataset: string; from?: string; to?: string }) =>
-    `${BASE_URL}/export?${new URLSearchParams(query as Record<string, string>)}`,
+    `${BASE_URL}/export${toQueryString(query)}`,
 };
 
 // ------------------------------------------------------------------ transport

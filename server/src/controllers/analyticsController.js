@@ -47,10 +47,11 @@ export async function getAnalytics(req, res) {
 
   const result = await analyticsService.periodSummary(user, settings, {
     period: query.period,
-    reference: parseReference(query.reference),
+    reference: parseReference(query.reference ?? query.anchor),
     compare: query.compare,
     timeZone,
     weekStart: query.weekStart ?? settings.weekStart,
+    subjectId: query.subjectId,
   });
 
   sendData(res, result);
@@ -106,7 +107,7 @@ export async function getWeeklyReview(req, res) {
   sendData(
     res,
     await analyticsService.weeklyReview(user, settings, {
-      reference: parseReference(query.reference),
+      reference: parseReference(query.reference ?? query.anchor),
       timeZone,
     }),
   );

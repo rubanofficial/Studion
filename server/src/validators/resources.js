@@ -172,6 +172,9 @@ export const analyticsQuery = z
     period: periodKind.default('week'),
     /** Any instant inside the wanted period. Defaults to now. */
     reference: z.string().trim().optional(),
+    /** Alias for reference accepted by client navigators */
+    anchor: z.string().trim().optional(),
+    subjectId: objectId.optional(),
     timeZone: timeZone.optional(),
     weekStart: weekStart.optional(),
     /** Compare against the preceding period of the same length. */

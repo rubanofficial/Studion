@@ -28,6 +28,23 @@ function formatIssues(error) {
 }
 
 /**
+ * Strips out spurious stringified 'undefined', 'null', and empty strings that
+ * client URLSearchParams commonly produce when optional parameters are omitted.
+ * @param {any} query
+ */
+function cleanQuery(query) {
+  if (!query || typeof query !== 'object') return query;
+  const cleaned = {};
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === null || value === '' || value === 'undefined' || value === 'null') {
+      continue;
+    }
+    cleaned[key] = value;
+  }
+  return cleaned;
+}
+
+/**
  * @param {{body?: import('zod').ZodTypeAny, query?: import('zod').ZodTypeAny, params?: import('zod').ZodTypeAny}} schemas
  * @returns {import('express').RequestHandler}
  */
@@ -42,12 +59,13 @@ export function validate(schemas) {
       const schema = schemas[key];
       if (!schema) {
         if (key === 'body') validated.body = req.body ?? {};
-        else if (key === 'query') validated.query = req.query ?? {};
+        else if (key === 'query') validated.query = cleanQuery(req.query ?? {});
         else validated.params = req.params ?? {};
         continue;
       }
 
-      const source = key === 'body' ? req.body ?? {} : key === 'query' ? req.query ?? {} : req.params ?? {};
+      const rawSource = key === 'body' ? req.body ?? {} : key === 'query' ? req.query ?? {} : req.params ?? {};
+      const source = key === 'query' ? cleanQuery(rawSource) : rawSource;
       const result = schema.safeParse(source);
 
       if (result.success) {

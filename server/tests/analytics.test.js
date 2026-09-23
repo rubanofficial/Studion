@@ -71,6 +71,25 @@ describe('analytics and reviews', () => {
     const weeklyReview = await user.authed.get('/api/analytics/review/weekly').expect(200);
     expect(weeklyReview.body.data.summary).toBeDefined();
 
+    // Main analytics endpoint (used by /insights)
+    const analyticsRes = await user.authed.get('/api/analytics').expect(200);
+    expect(analyticsRes.body.data.period).toBeDefined();
+    expect(analyticsRes.body.data.summary).toBeDefined();
+    expect(analyticsRes.body.data.summary.sessionCount).toBe(1);
+    expect(analyticsRes.body.data.insights).toBeDefined();
+
+    // Spurious 'undefined' query parameters sent by client URLSearchParams
+    const analyticsUndefinedRes = await user.authed
+      .get('/api/analytics?period=week&anchor=undefined&subjectId=undefined')
+      .expect(200);
+    expect(analyticsUndefinedRes.body.data.period).toBeDefined();
+
+    // Filter by subject and with anchor date
+    const analyticsSubjectRes = await user.authed
+      .get(`/api/analytics?period=month&anchor=2026-03-15&subjectId=${subject._id}`)
+      .expect(200);
+    expect(analyticsSubjectRes.body.data.period.kind).toBe('month');
+
     // Achievements
     const achRes = await user.authed.get('/api/analytics/achievements').expect(200);
     expect(achRes.body.data.unlocked.length).toBeGreaterThan(0);

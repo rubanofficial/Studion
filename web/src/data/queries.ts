@@ -115,10 +115,12 @@ export function useDataGeneration(): number {
 export function usePeriodAnalytics(query: {
   period: 'week' | 'month' | 'year';
   anchor?: string;
+  reference?: string;
   subjectId?: string;
+  compare?: boolean;
 }) {
   const generation = useDataGeneration();
-  const key = `analytics:${query.period}:${query.anchor ?? 'now'}:${query.subjectId ?? 'all'}:${generation}`;
+  const key = `analytics:${query.period}:${query.anchor ?? query.reference ?? 'now'}:${query.subjectId ?? 'all'}:${generation}`;
   return useQuery(key, () => api.analytics.period({ ...query }), { deps: [generation] });
 }
 
