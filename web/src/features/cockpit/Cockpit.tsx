@@ -31,6 +31,7 @@ import { CockpitGreeting } from './CockpitGreeting';
 import { FocusCore } from './FocusCore';
 import { FocusModeOverlay } from './FocusModeOverlay';
 import { Momentum } from './Momentum';
+import { MotivationalInsightsCard } from './MotivationalInsightsCard';
 import { UpNext } from './UpNext';
 import { TimeSpine } from '../timeline/TimeSpine';
 import { SessionComplete } from './SessionComplete';
@@ -92,8 +93,11 @@ export function Cockpit() {
             <UpNext />
           </div>
 
-          <div className="order-1 flex flex-col gap-8 lg:order-2">
+          <div className="order-1 flex flex-col gap-6 lg:order-2">
             <FocusCore />
+
+            {/* Data-Driven Motivational Insights Card */}
+            <MotivationalInsightsCard />
 
             {today && today.sessionCount > 0 && (
               <div className="rounded-lg border border-line bg-surface/50 px-4 py-4 sm:px-5">

@@ -30,20 +30,29 @@ export function CockpitGreeting() {
 
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-      <p className="text-lead text-ink">
-        {greeting}
-        {firstName ? <span className="text-muted">, {firstName}</span> : null}
-        <span className="text-muted">
-          {' '}
-          — {situation({ overview, subjects: subjects.length, phase })}
-        </span>
-      </p>
-
-      {overview && !overview.today.goalMet && overview.today.goalSeconds > 0 && (
-        <p className="font-mono text-micro uppercase tracking-[0.08em] text-faint">
-          {duration(Math.max(0, overview.today.remainingSeconds))} to today's goal
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-lead text-ink">
+          {greeting}
+          {firstName ? <span className="text-muted">, {firstName}</span> : null}
+          <span className="text-muted">
+            {' '}
+            — {situation({ overview, subjects: subjects.length, phase })}
+          </span>
         </p>
-      )}
+      </div>
+
+      <div className="flex items-center gap-3">
+        {overview && overview.streak.daily.current > 1 && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-pause/30 bg-pause/10 px-2.5 py-0.5 font-mono text-micro uppercase tracking-wider text-pause">
+            🔥 {overview.streak.daily.current}d streak
+          </span>
+        )}
+        {overview && !overview.today.goalMet && overview.today.goalSeconds > 0 && (
+          <p className="font-mono text-micro uppercase tracking-[0.08em] text-faint">
+            {duration(Math.max(0, overview.today.remainingSeconds))} to today's goal
+          </p>
+        )}
+      </div>
     </div>
   );
 }

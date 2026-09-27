@@ -27,6 +27,7 @@ import { selectActiveSubjects, useApp } from '../../store/app';
 import { Button, EmptyState, ErrorState, Segmented, SectionHeading, Skeleton, Spinner, cn } from '../../components/ui';
 import { DaySheet } from './DaySheet';
 import { ComparisonList, DayDial, FocusHeatmap, FocusLandscape, SubjectDistribution } from './charts';
+import { MotivationalInsightsCard } from '../cockpit/MotivationalInsightsCard';
 
 type PeriodKind = 'week' | 'month' | 'year';
 
@@ -175,6 +176,15 @@ export function InsightsView() {
           />
         ) : (
           <>
+            {/* ---------------------------------- motivational coaching & momentum */}
+            <section className="flex flex-col gap-4">
+              <SectionHeading
+                title="Momentum & Motivation"
+                detail="Real-time encouragement and coaching derived directly from your focus consistency and targets."
+              />
+              <MotivationalInsightsCard />
+            </section>
+
             {/* ------------------------------------------------- the landscape */}
             <section className="flex flex-col gap-4">
               <SectionHeading

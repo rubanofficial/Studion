@@ -72,42 +72,94 @@ export function FocusModeOverlay() {
   const isBreak = snapshot.phase === 'break';
   const remaining = snapshot.remainingSeconds;
 
+  const toneColor =
+    isBreak ? 'rgb(var(--state-rest))' : snapshot.phase === 'paused' ? 'rgb(var(--state-pause))' : 'rgb(var(--accent))';
+
+  const overview = useApp((state) => state.overview);
+  const todayGoal = overview?.today.goalSeconds ?? 0;
+  const todayFocused = overview?.today.focusedSeconds ?? 0;
+  const streak = overview?.streak.daily.current ?? 0;
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label="Focus mode"
-      className="fixed inset-0 z-[55] flex flex-col bg-void"
+      className="fixed inset-0 z-[55] flex flex-col bg-void overflow-hidden"
       onDoubleClick={() => setFocusMode(false)}
     >
-      {/* The planned session as one hairline across the very top. The only
-          progress indicator in the mode, and it is deliberately peripheral. */}
-      <div className="h-[2px] w-full bg-line" aria-hidden="true">
+      {/* Ambient background light beam */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[38rem] w-[38rem] rounded-full opacity-15 blur-[100px] transition-all duration-slow"
+        style={{ background: toneColor }}
+      />
+
+      {/* The planned session as one hairline across the very top */}
+      <div className="h-[2.5px] w-full bg-line" aria-hidden="true">
         <div
-          className={cn('h-full transition-[width] duration-calm linear', isBreak ? 'bg-rest' : 'bg-accent')}
-          style={{ width: `${progress * 100}%` }}
+          className={cn('h-full transition-[width] duration-calm linear shadow-[0_0_8px_currentColor]')}
+          style={{ width: `${progress * 100}%`, backgroundColor: toneColor, color: toneColor }}
         />
       </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center px-6">
-        <p className="font-mono text-micro uppercase tracking-[0.28em] text-faint">{subject?.name ?? 'Focus'}</p>
+      <div className="relative flex flex-1 flex-col items-center justify-center px-6">
+        {/* Subject Pill */}
+        <div className="inline-flex items-center gap-2 rounded-full border border-line/70 bg-surface/70 px-3.5 py-1 backdrop-blur-md">
+          <span
+            className="h-2 w-2 rounded-full shadow-[0_0_8px_currentColor]"
+            style={{ backgroundColor: subject?.color ?? toneColor, color: subject?.color ?? toneColor }}
+          />
+          <span className="font-mono text-micro uppercase tracking-[0.28em] text-muted">{subject?.name ?? 'Focus'}</span>
+        </div>
 
+        {/* Big Clock Digits with luminous glow */}
         <p
           className={cn(
-            'mt-3 font-mono text-[clamp(4.5rem,22vw,14rem)] leading-[0.9] tracking-[-0.05em] numeric-stable',
-            isBreak ? 'text-rest' : snapshot.phase === 'paused' ? 'text-pause' : 'text-ink',
+            'mt-3 font-mono text-[clamp(4.5rem,20vw,13.5rem)] leading-[0.9] tracking-[-0.05em] numeric-stable font-semibold transition-all duration-calm',
+            isBreak
+              ? 'text-rest drop-shadow-[0_0_36px_rgb(var(--state-rest)/0.45)]'
+              : snapshot.phase === 'paused'
+              ? 'text-pause drop-shadow-[0_0_36px_rgb(var(--state-pause)/0.45)]'
+              : 'text-ink drop-shadow-[0_0_40px_rgb(var(--accent)/0.35)]',
           )}
         >
           {formatClock(isBreak ? snapshot.breakSeconds : snapshot.focusedSeconds)}
         </p>
 
-        <p className="mt-4 font-mono text-tiny uppercase tracking-[0.16em] text-faint">
-          {snapshot.plannedSeconds > 0
-            ? `${formatDuration(snapshot.plannedSeconds, { style: 'short' })} planned · ${
-                remaining > 0 ? `${formatDuration(remaining, { style: 'short' })} left` : 'plan reached'
-              }`
-            : 'open session'}
-        </p>
+        {/* Planned / Progress pill */}
+        <div className="mt-3 flex items-center gap-2">
+          {snapshot.plannedSeconds > 0 ? (
+            <span className="inline-flex items-center gap-2 rounded-full border border-line/60 bg-raised/50 px-3 py-1 font-mono text-tiny uppercase tracking-[0.14em] text-faint backdrop-blur-sm">
+              <span className="font-semibold text-ink">{Math.round(progress * 100)}%</span>
+              <span>·</span>
+              <span>
+                {remaining > 0 ? `${formatDuration(remaining, { style: 'short' })} left` : 'plan reached'}
+              </span>
+            </span>
+          ) : (
+            <span className="font-mono text-tiny uppercase tracking-[0.14em] text-faint">open session</span>
+          )}
+
+          {snapshot.isOverrun && (
+            <span className="rounded-full bg-accent/20 border border-accent/40 px-2.5 py-0.5 text-accent font-mono text-tiny uppercase tracking-wider font-semibold animate-pulse">
+              +{formatDuration(snapshot.focusedSeconds - snapshot.plannedSeconds, { style: 'short' })} over
+            </span>
+          )}
+        </div>
+
+        {/* Motivational Data Spark Pill */}
+        <div className="mt-4 flex items-center gap-3 font-mono text-tiny text-faint">
+          {streak > 1 && (
+            <span className="inline-flex items-center gap-1 rounded-md bg-surface/60 border border-line px-2.5 py-1">
+              🔥 {streak}-day streak
+            </span>
+          )}
+          {todayGoal > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-md bg-surface/60 border border-line px-2.5 py-1">
+              🎯 {todayFocused >= todayGoal ? 'Goal completed' : `${formatDuration(todayFocused)} / ${formatDuration(todayGoal)} today`}
+            </span>
+          )}
+        </div>
 
         <p className="sr-only" aria-live="polite">
           {snapshot.phase === 'paused' ? 'Paused.' : isBreak ? 'On a break.' : 'Focus running.'}
