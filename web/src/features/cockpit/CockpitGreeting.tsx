@@ -89,8 +89,8 @@ function situation({
 
   if (today.goalMet) {
     return streak.daily.current > 1
-      ? `today's goal is done and the run is at ${streak.daily.current} days.`
-      : "today's goal is done. Anything further is a bonus.";
+      ? `today's goal is completed! 🔥 The streak is at ${streak.daily.current} days.`
+      : "today's goal is completed! Everything beyond this is a bonus.";
   }
 
   if (today.goalSeconds > 0) {

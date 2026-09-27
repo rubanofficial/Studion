@@ -1,22 +1,20 @@
-/**
- * Momentum — the right instrument strip.
- *
- * This is where the cockpit turns recorded time into a sense of build-up. It is
- * the antidote to the empty dashboard: even with four sessions recorded, the user
- * sees a shape forming — the week's landscape, the streak, the next achievement
- * within reach.
- *
- * The week landscape is deliberately *not* a bar chart with axes. It is a row of
- * vertical marks with a hairline target line, read left to right like a pulse
- * trace. You can tell whether today is ahead of yesterday without reading a
- * single number, and the numbers are one hover away if you want them.
- */
-
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 import { duration, weekdayShort } from '../../lib/format';
 import { selectActiveSubjects, useApp } from '../../store/app';
 import { cn } from '../../components/ui';
+
+/** Motivational messages shown on a cycle when the daily goal is met. */
+const CELEBRATION_MESSAGES = [
+  'You crushed it today! 🔥',
+  'Consistency builds mastery! 💪',
+  'Your future self thanks you! 🚀',
+  'Another step towards greatness! ⭐',
+  'Discipline is your superpower! 🏆',
+  'You showed up and delivered! 🎯',
+  'The compound effect is real! 📈',
+];
 
 export function Momentum() {
   const overview = useApp((state) => state.overview);
@@ -41,13 +39,17 @@ export function Momentum() {
       <div>
         <div className="flex items-baseline justify-between">
           <h2 className="label">Today</h2>
-          <span className={cn('font-mono text-micro uppercase', today.goalMet ? 'text-good' : 'text-faint')}>
-            {today.goalMet ? 'goal met' : today.goalSeconds > 0 ? `${duration(today.remainingSeconds)} left` : 'no goal set'}
-          </span>
+          {today.goalMet ? (
+            <GoalCompletedBadge />
+          ) : (
+            <span className={cn('font-mono text-micro uppercase', 'text-faint')}>
+              {today.goalSeconds > 0 ? `${duration(today.remainingSeconds)} left` : 'no goal set'}
+            </span>
+          )}
         </div>
 
         <div className="mt-2.5 flex items-center gap-3.5">
-          <SmallRing ratio={goalRatio} size={56} />
+          <SmallRing ratio={goalRatio} size={56} tone={today.goalMet ? 'good' : 'accent'} />
           <div className="min-w-0">
             <p className="font-mono text-lead text-ink numeric-stable">{duration(today.focusedSeconds)}</p>
             <p className="hint">
@@ -59,6 +61,9 @@ export function Momentum() {
             </p>
           </div>
         </div>
+
+        {/* Celebration block when the goal is met */}
+        {today.goalMet && <CelebrationCard focusedSeconds={today.focusedSeconds} goalSeconds={today.goalSeconds} />}
       </div>
 
       {/* -------------------------------------------------------- the landscape */}
@@ -235,4 +240,120 @@ function describeWeek(series: Array<{ dayKey: string; focusedSeconds: number }>)
   const total = series.reduce((sum, cell) => sum + cell.focusedSeconds, 0);
   const best = series.reduce((top, cell) => (cell.focusedSeconds > top.focusedSeconds ? cell : top), series[0] ?? { dayKey: '', focusedSeconds: 0 });
   return `This week: ${duration(total)} recorded. Best day ${best.dayKey ? weekdayShort(best.dayKey) : 'n/a'} with ${duration(best.focusedSeconds)}.`;
+}
+
+/** An animated "GOAL COMPLETED" badge with a subtle glow pulse. */
+function GoalCompletedBadge() {
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full bg-good/15 px-2 py-0.5 font-mono text-micro uppercase tracking-[0.1em] text-good"
+      style={{
+        animation: 'goalPulse 2.5s ease-in-out infinite',
+        textShadow: '0 0 8px rgb(var(--state-good) / 0.5)',
+      }}
+    >
+      <span aria-hidden="true" style={{ fontSize: '0.65rem' }}>🎉</span>
+      goal completed
+      <style>{`
+        @keyframes goalPulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgb(var(--state-good) / 0); }
+          50% { box-shadow: 0 0 12px 2px rgb(var(--state-good) / 0.25); }
+        }
+      `}</style>
+    </span>
+  );
+}
+
+/** A celebration card with confetti burst and cycling motivational messages. */
+function CelebrationCard({ focusedSeconds, goalSeconds }: { focusedSeconds: number; goalSeconds: number }) {
+  const [messageIndex, setMessageIndex] = useState(() => Math.floor(Math.random() * CELEBRATION_MESSAGES.length));
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    // Stagger the entrance so it feels like a reward arriving.
+    const handle = setTimeout(() => setVisible(true), 150);
+    return () => clearTimeout(handle);
+  }, []);
+
+  // Rotate messages every 5 seconds.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMessageIndex((prev) => (prev + 1) % CELEBRATION_MESSAGES.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const overtimeSeconds = Math.max(0, focusedSeconds - goalSeconds);
+
+  return (
+    <div
+      className={cn(
+        'mt-3 relative overflow-hidden rounded-lg border border-good/30 bg-good/[0.06] px-3.5 py-3 transition-all duration-500',
+        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
+      )}
+    >
+      {/* Confetti particles */}
+      <ConfettiBurst />
+
+      <p
+        className="text-small text-good transition-opacity duration-500"
+        key={messageIndex}
+        style={{ animation: 'fadeSlideIn 0.5s ease-out' }}
+      >
+        {CELEBRATION_MESSAGES[messageIndex]}
+      </p>
+
+      {overtimeSeconds > 0 && (
+        <p className="mt-1 font-mono text-micro text-muted">
+          +{duration(overtimeSeconds)} beyond the goal — everything extra is a bonus.
+        </p>
+      )}
+
+      <style>{`
+        @keyframes fadeSlideIn {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/** A lightweight CSS confetti burst — no library needed. */
+function ConfettiBurst() {
+  // Generate deterministic confetti particle positions.
+  const particles = Array.from({ length: 12 }, (_, i) => ({
+    id: i,
+    left: `${8 + (i * 7.5) % 85}%`,
+    delay: `${(i * 0.15) % 1.2}s`,
+    color: ['#5eead4', '#fbbf24', '#f472b6', '#818cf8', '#34d399', '#fb923c'][i % 6],
+    size: 3 + (i % 3),
+  }));
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      {particles.map((p) => (
+        <span
+          key={p.id}
+          className="absolute rounded-full"
+          style={{
+            left: p.left,
+            top: '-4px',
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            backgroundColor: p.color,
+            animation: `confettiFall 1.8s ${p.delay} ease-out forwards`,
+            opacity: 0,
+          }}
+        />
+      ))}
+      <style>{`
+        @keyframes confettiFall {
+          0% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+          60% { opacity: 0.8; }
+          100% { opacity: 0; transform: translateY(60px) rotate(${180 + Math.random() * 360}deg) scale(0.3); }
+        }
+      `}</style>
+    </div>
+  );
 }

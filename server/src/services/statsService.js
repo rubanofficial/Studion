@@ -16,6 +16,7 @@ import {
   dayKeyRange,
   endOfDay,
   startOfDay,
+  startOfWeekKey,
   trailingDayKeys,
 } from '@focusforge/core';
 
@@ -434,8 +435,22 @@ export async function overview(userId, settings, context) {
     goalMet: false,
   };
 
-  // The trailing seven local days, ending today.
-  const weekSeries = series.slice(-7);
+  // The current calendar week, aligned to the user's weekStart preference, so the
+  // weekly total resets at the true week boundary rather than being a sliding window.
+  const weekFromKey = startOfWeekKey(nowKey, settings.weekStart);
+  const weekToKey = dayKeyRange(weekFromKey, nowKey).at(-1) ?? nowKey;
+  const weekDayKeys = dayKeyRange(weekFromKey, weekToKey);
+
+  const byDayKey = new Map(series.map((day) => [day.dayKey, day]));
+  const weekSeries = weekDayKeys.map((key) => byDayKey.get(key) ?? {
+    dayKey: key,
+    focusedSeconds: 0,
+    breakSeconds: 0,
+    sessionCount: 0,
+    completedCount: 0,
+    distractionCount: 0,
+    goalMet: false,
+  });
   const weekKeys = weekSeries.map((day) => day.dayKey);
 
   const streaks = await streakState(userId, { ...contextForRollups, weekStart: settings.weekStart, nowKey });
@@ -455,17 +470,24 @@ export async function overview(userId, settings, context) {
   // cockpit looks frozen while the timer is running.
   const liveSeconds = openRecord && openRecord.dayKey === nowKey ? openRecord.focusedSeconds : 0;
 
+  // The goal is met only when the total focused time strictly exceeds the daily
+  // goal (e.g. >4h), not the streak's success threshold (which can be much lower).
+  const totalFocusedToday = today.focusedSeconds + liveSeconds;
+  const dailyGoalMet = settings.dailyGoalSeconds > 0 && totalFocusedToday > settings.dailyGoalSeconds;
+
   return {
     timeZone,
     nowKey,
     today: {
       ...today,
       /** Closed-session total plus the live session's seconds-so-far. */
-      focusedSeconds: today.focusedSeconds + liveSeconds,
+      focusedSeconds: totalFocusedToday,
       liveSeconds,
       goalSeconds: settings.dailyGoalSeconds,
-      goalProgress: settings.dailyGoalSeconds > 0 ? Math.min(1, (today.focusedSeconds + liveSeconds) / settings.dailyGoalSeconds) : 0,
-      remainingSeconds: Math.max(0, settings.dailyGoalSeconds - today.focusedSeconds - liveSeconds),
+      /** Override goalMet to use dailyGoalSeconds rather than successThresholdSeconds. */
+      goalMet: dailyGoalMet,
+      goalProgress: settings.dailyGoalSeconds > 0 ? Math.min(1, totalFocusedToday / settings.dailyGoalSeconds) : 0,
+      remainingSeconds: Math.max(0, settings.dailyGoalSeconds - totalFocusedToday),
     },
     week: {
       keys: weekKeys,

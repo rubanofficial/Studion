@@ -167,7 +167,7 @@ export function SessionComplete({ onDismiss }: { onDismiss: () => void }) {
 
               {goalNowMet && (
                 <p className="mt-3 rounded-md border border-good/30 bg-good/[0.06] px-3 py-2 text-small text-muted">
-                  Today's goal is met. Everything from here is ahead of plan.
+                  🎉 Today's goal is completed! You went above and beyond — everything from here is pure bonus.
                 </p>
               )}
             </div>
